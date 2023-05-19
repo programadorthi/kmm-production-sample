@@ -41,7 +41,7 @@ dependencyResolutionManagement {
             library("compose-libres", "io.github.skeptick.libres:libres-compose:1.1.8")
             library("compose-image-loader", "io.github.qdsfdhvh:image-loader:1.4.2")
             library("voyager-navigator", "cafe.adriel.voyager:voyager-navigator:1.0.0-rc06")
-            library("insetx", "com.moriatsushi.insetsx:insetsx:0.1.0-alpha05")
+            library("insetx", "com.moriatsushi.insetsx:insetsx:0.1.0-alpha06")
 
             val ktor = "2.3.0"
             library("ktor-core", "io.ktor:ktor-client-core:$ktor")
