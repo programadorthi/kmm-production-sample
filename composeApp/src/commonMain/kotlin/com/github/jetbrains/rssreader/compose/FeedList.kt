@@ -28,9 +28,11 @@ import com.github.jetbrains.rssreader.app.FeedAction
 import com.github.jetbrains.rssreader.app.FeedStore
 import com.github.jetbrains.rssreader.core.entity.Feed
 import com.github.jetbrains.rssreader.images.MRImages
+import com.moriatsushi.insetsx.ExperimentalSoftwareKeyboardApi
 import com.moriatsushi.insetsx.safeDrawing
 import io.github.skeptick.libres.compose.painterResource
 
+@OptIn(ExperimentalSoftwareKeyboardApi::class)
 @Composable
 internal fun FeedList(store: FeedStore) {
     Box(
@@ -51,9 +53,7 @@ internal fun FeedList(store: FeedStore) {
         FloatingActionButton(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(16.dp)
-                .navigationBarsPadding()
-                .imePadding(),
+                .padding(16.dp),
             onClick = { addFeedDialog.show(Unit) }
         ) {
             Image(

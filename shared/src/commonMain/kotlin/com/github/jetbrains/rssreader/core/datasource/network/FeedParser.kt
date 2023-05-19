@@ -2,7 +2,9 @@ package com.github.jetbrains.rssreader.core.datasource.network
 
 import com.github.jetbrains.rssreader.core.entity.Feed
 import com.github.jetbrains.rssreader.core.entity.Post
-import io.ktor.http.*
+import io.github.aakira.napier.Napier
+import io.ktor.http.URLBuilder
+import io.ktor.http.encodedPath
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import nl.adaptivity.xmlutil.serialization.XML
@@ -36,7 +38,12 @@ internal class FeedParser(
                     item.link,
                     cleanTextCompact(item.description),
                     pullPostImageUrl(item.link, item.description, item.encoded),
-                    dateParser.parse(item.pubDate) * 1000
+                    try {
+                        dateParser.parse(item.pubDate) * 1000
+                    } catch (e: Exception) {
+                        Napier.e(e) { "Date parsing error" }
+                        0
+                    }
                 )
             },
             sourceUrl,

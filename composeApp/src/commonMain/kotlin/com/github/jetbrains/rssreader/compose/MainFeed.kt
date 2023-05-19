@@ -24,6 +24,7 @@ import com.github.jetbrains.rssreader.app.FeedStore
 import com.github.jetbrains.rssreader.core.entity.Feed
 import com.github.jetbrains.rssreader.core.entity.Post
 import com.moriatsushi.insetsx.ExperimentalSoftwareKeyboardApi
+import com.moriatsushi.insetsx.navigationBars
 import com.moriatsushi.insetsx.safeDrawing
 import kotlinx.coroutines.launch
 
@@ -84,9 +85,7 @@ internal fun MainFeedBottomBar(
     }
     LazyRow(
         modifier = Modifier.fillMaxWidth().windowInsetsPadding(
-            WindowInsets.safeDrawing.only(
-                WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal
-            )
+            WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)
         ),
         contentPadding = PaddingValues(16.dp)
     ) {

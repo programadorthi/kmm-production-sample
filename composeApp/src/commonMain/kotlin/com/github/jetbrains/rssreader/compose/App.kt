@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -52,7 +51,6 @@ internal fun App() = AppTheme {
         }
     }
     CommonDialogHandleableApplication {
-
         val globalDialogState = LocalMutableFullScreenState.current
         Navigator(
             screen = MainScreen(),
@@ -70,11 +68,7 @@ internal fun App() = AppTheme {
                 snackbarHost = { hostState ->
                     SnackbarHost(
                         hostState = hostState,
-                        modifier = Modifier.padding(
-                            WindowInsets.systemBars
-                                .only(WindowInsetsSides.Bottom)
-                                .asPaddingValues()
-                        )
+                        modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing)
                     )
                 },
                 drawerElevation = 0.dp,
@@ -107,11 +101,7 @@ internal fun App() = AppTheme {
                 }
             ) {
                 Box(
-                    Modifier.windowInsetsPadding(
-                        WindowInsets.safeDrawing.only(
-                            WindowInsetsSides.Horizontal
-                        )
-                    )
+                    Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
                 ) {
                     CurrentScreen()
                 }
