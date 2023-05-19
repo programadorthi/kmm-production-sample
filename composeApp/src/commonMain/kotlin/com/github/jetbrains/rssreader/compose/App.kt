@@ -17,6 +17,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
@@ -31,6 +32,8 @@ import com.github.jetbrains.rssreader.images.MRImages
 import com.github.jetbrains.rssreader.strings.MRStrings
 import com.moriatsushi.insetsx.ExperimentalSoftwareKeyboardApi
 import com.moriatsushi.insetsx.safeDrawing
+import com.seiko.imageloader.ImageLoader
+import com.seiko.imageloader.LocalImageLoader
 import io.github.skeptick.libres.compose.painterResource
 import kotlinx.coroutines.flow.filterIsInstance
 import org.koin.mp.KoinPlatformTools
@@ -50,62 +53,85 @@ internal fun App() = AppTheme {
             )
         }
     }
-    CommonDialogHandleableApplication {
-        val globalDialogState = LocalMutableFullScreenState.current
-        Navigator(
-            screen = MainScreen(),
-            onBackPressed = {
-                if (globalDialogState.state.value == FullScreenState.Active) {
-                    globalDialogState.state.value = FullScreenState.Inactive
-                    return@Navigator false
-                } else {
-                    return@Navigator true
+
+    CompositionLocalProvider(
+        LocalImageLoader provides generateImageLoader(),
+    ) {
+        CommonDialogHandleableApplication {
+            val globalDialogState = LocalMutableFullScreenState.current
+            Navigator(
+                screen = MainScreen(),
+                onBackPressed = {
+                    if (globalDialogState.state.value == FullScreenState.Active) {
+                        globalDialogState.state.value = FullScreenState.Inactive
+                        return@Navigator false
+                    } else {
+                        return@Navigator true
+                    }
                 }
-            }
-        ) { navigator ->
-            Scaffold(
-                scaffoldState = scaffoldState,
-                snackbarHost = { hostState ->
-                    SnackbarHost(
-                        hostState = hostState,
-                        modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing)
-                    )
-                },
-                drawerElevation = 0.dp,
-                topBar = {
-                    TopAppBar(
-                        navigationIcon = {
-                            Image(
-                                painter = painterResource(
-                                    if (navigator.canPop) MRImages.ic_arrow_back else MRImages.ic_home
-                                ),
-                                modifier = Modifier
-                                    .padding(8.dp)
-                                    .clip(CircleShape)
-                                    .clickable { navigator.pop() }
-                                    .padding(8.dp),
-                                colorFilter = ColorFilter.tint(MaterialTheme.colors.onSecondary),
-                                contentDescription = null
-                            )
-                        },
-                        elevation = 0.dp,
-                        title = {
-                            Text(MRStrings.app_name)
-                        },
-                        modifier = Modifier
-                            .background(MaterialTheme.colors.primary)
-                            .windowInsetsPadding(
-                                WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
-                            )
-                    )
-                }
-            ) {
-                Box(
-                    Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
+            ) { navigator ->
+                Scaffold(
+                    scaffoldState = scaffoldState,
+                    snackbarHost = { hostState ->
+                        SnackbarHost(
+                            hostState = hostState,
+                            modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing)
+                        )
+                    },
+                    drawerElevation = 0.dp,
+                    topBar = {
+                        TopAppBar(
+                            navigationIcon = {
+                                Image(
+                                    painter = painterResource(
+                                        if (navigator.canPop) MRImages.ic_arrow_back else MRImages.ic_home
+                                    ),
+                                    modifier = Modifier
+                                        .padding(8.dp)
+                                        .clip(CircleShape)
+                                        .clickable { navigator.pop() }
+                                        .padding(8.dp),
+                                    colorFilter = ColorFilter.tint(MaterialTheme.colors.onSecondary),
+                                    contentDescription = null
+                                )
+                            },
+                            elevation = 0.dp,
+                            title = {
+                                Text(MRStrings.app_name)
+                            },
+                            modifier = Modifier
+                                .background(MaterialTheme.colors.primary)
+                                .windowInsetsPadding(
+                                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+                                )
+                        )
+                    }
                 ) {
-                    CurrentScreen()
+                    Box(
+                        Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
+                    ) {
+                        CurrentScreen()
+                    }
                 }
             }
         }
+    }
+}
+
+private fun generateImageLoader(
+    memCacheSize: Int = 32 * 1024 * 1024,
+    diskCacheSize: Int = 512 * 1024 * 1024
+) = ImageLoader {
+    interceptor {
+        memoryCacheConfig {
+            maxSizeBytes(memCacheSize)
+        }
+        diskCacheConfig {
+            directory(getImageCacheDirectoryPath())
+            maxSizeBytes(diskCacheSize.toLong())
+        }
+    }
+    components {
+        setupDefaultComponents()
     }
 }
