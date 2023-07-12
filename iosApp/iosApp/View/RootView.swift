@@ -25,8 +25,8 @@ struct RootView: View {
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
-        .onReceive(store.$sideEffect) { value in
-            if let errorMessage = (value as? FeedSideEffect.Error)?.error.message {
+        .onReceive(store.$error) { value in
+            if let errorMessage = value?.message {
                 withAnimation { self.errorMessage = errorMessage }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                     withAnimation { self.errorMessage = nil }

@@ -28,61 +28,37 @@ class RSSApp: App {
 }
 
 class ObservableFeedStore: ObservableObject {
-    @Published public var state: FeedState =  FeedState(progress: false, feeds: [], selectedFeed: nil)
-    @Published public var sideEffect: FeedSideEffect?
+    @Published public var error: KotlinThrowable?
+    @Published public var loading: Bool = false
+    @Published public var data: Array<Feed> = []
+    @Published public var selected: Feed? = nil
     
-    let store: FeedStore
+    let feedStore: FeedStore
     
+    var selectWatcher : Closeable?
     var stateWatcher : Closeable?
-    var sideEffectWatcher : Closeable?
 
     init(store: FeedStore) {
-        self.store = store
-        stateWatcher = self.store.watchState().watch { [weak self] state in
-            self?.state = state
+        self.feedStore = store
+        
+        stateWatcher = self.feedStore.watchState().watch { [weak self] state in
+            let feeds = state?.valueOrDefault(default: [])
+            self?.data = feeds?.map { $0 as! Feed } ?? []
+            
+            if (state?.hasError() == true) {
+                self?.error = state?.error()
+            }
+            
+            self?.loading = state?.loading() ?? false
         }
-        sideEffectWatcher = self.store.watchSideEffect().watch { [weak self] state in
-            self?.sideEffect = state
+        
+        selectWatcher = self.feedStore.watchSelected().watch { [weak self] feed in
+            self?.selected = feed
         }
-    }
-    
-    public func dispatch(_ action: FeedAction) {
-        store.dispatch(action: action)
     }
     
     deinit {
+        selectWatcher?.close()
         stateWatcher?.close()
-        sideEffectWatcher?.close()
     }
 }
-
-public typealias DispatchFunction = (FeedAction) -> ()
-
-public protocol ConnectedView: View {
-    associatedtype Props
-    associatedtype V: View
-    
-    func map(state: FeedState, dispatch: @escaping DispatchFunction) -> Props
-    func body(props: Props) -> V
-}
-
-public extension ConnectedView {
-    func render(state: FeedState, dispatch: @escaping DispatchFunction) -> V {
-        let props = map(state: state, dispatch: dispatch)
-        return body(props: props)
-    }
-    
-    var body: StoreConnector<V> {
-        return StoreConnector(content: render)
-    }
-}
-
-public struct StoreConnector<V: View>: View {
-    @EnvironmentObject var store: ObservableFeedStore
-    let content: (FeedState, @escaping DispatchFunction) -> V
-    
-    public var body: V {
-        return content(store.state, store.dispatch)
-    }
-}
-

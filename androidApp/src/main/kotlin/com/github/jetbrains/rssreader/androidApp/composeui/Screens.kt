@@ -18,7 +18,6 @@ import androidx.compose.ui.platform.LocalContext
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import com.github.jetbrains.rssreader.app.FeedAction
 import com.github.jetbrains.rssreader.app.FeedStore
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -30,15 +29,16 @@ class MainScreen : Screen, KoinComponent {
         val store: FeedStore by inject()
         val context = LocalContext.current
         val navigator = LocalNavigator.currentOrThrow
-        val state by store.observeState().collectAsState()
+        val state by store.state.collectAsState()
         val refreshState = rememberPullRefreshState(
-            refreshing = state.progress,
-            onRefresh = { store.dispatch(FeedAction.Refresh(true)) }
+            refreshing = state.loading(),
+            onRefresh = { store.loadAllFeeds(forceLoad = true) }
         )
 
         LaunchedEffect(Unit) {
-            store.dispatch(FeedAction.Refresh(false))
+            store.loadAllFeeds(forceLoad = false)
         }
+
         Box(modifier = Modifier.pullRefresh(refreshState)) {
             MainFeed(
                 store = store,
@@ -55,7 +55,7 @@ class MainScreen : Screen, KoinComponent {
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .statusBarsPadding(),
-                refreshing = state.progress,
+                refreshing = state.loading(),
                 state = refreshState,
                 scale = true //https://github.com/google/accompanist/issues/572
             )

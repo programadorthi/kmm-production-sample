@@ -1,16 +1,23 @@
 package com.github.jetbrains.rssreader.androidApp.composeui
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.github.jetbrains.rssreader.app.FeedAction
 import com.github.jetbrains.rssreader.app.FeedStore
 import com.github.jetbrains.rssreader.core.entity.Feed
 import com.github.jetbrains.rssreader.core.entity.Post
@@ -22,9 +29,11 @@ fun MainFeed(
     onPostClick: (Post) -> Unit,
     onEditClick: () -> Unit,
 ) {
-    val state = store.observeState().collectAsState()
-    val posts = remember(state.value.feeds, state.value.selectedFeed) {
-        (state.value.selectedFeed?.posts ?: state.value.feeds.flatMap { it.posts })
+    val state by store.state.collectAsState()
+    val selectedFeed by store.selectedFeed.collectAsState()
+    val feeds = state.valueOrDefault(emptyList())
+    val posts = remember(state, selectedFeed) {
+        (selectedFeed?.posts ?: feeds.flatMap { it.posts })
             .sortedByDescending { it.date }
     }
     Column {
@@ -36,11 +45,11 @@ fun MainFeed(
             listState = listState
         ) { post -> onPostClick(post) }
         MainFeedBottomBar(
-            feeds = state.value.feeds,
-            selectedFeed = state.value.selectedFeed,
+            feeds = feeds,
+            selectedFeed = selectedFeed,
             onFeedClick = { feed ->
                 coroutineScope.launch { listState.scrollToItem(0) }
-                store.dispatch(FeedAction.SelectFeed(feed))
+                store.selectFeed(feed)
             },
             onEditClick = onEditClick
         )
@@ -81,11 +90,13 @@ fun MainFeedBottomBar(
                     isSelected = selectedFeed == null,
                     onClick = { onFeedClick(null) }
                 )
+
                 is Icons.FeedIcon -> FeedIcon(
                     feed = item.feed,
                     isSelected = selectedFeed == item.feed,
                     onClick = { onFeedClick(item.feed) }
                 )
+
                 is Icons.Edit -> EditIcon(onClick = onEditClick)
             }
             Spacer(modifier = Modifier.size(16.dp))

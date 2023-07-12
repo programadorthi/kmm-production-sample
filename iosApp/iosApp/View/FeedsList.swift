@@ -9,38 +9,24 @@
 import SwiftUI
 import RssReader
 
-struct FeedsList: ConnectedView {
-    
-    struct Props {
-        let defaultFeeds: [Feed]
-        let userFeeds: [Feed]
-        let onAdd: (String) -> ()
-        let onRemove: (String) -> ()
-    }
-    
-    func map(state: FeedState, dispatch: @escaping DispatchFunction) -> Props {
-        return Props(defaultFeeds: state.feeds.filter { $0.isDefault },
-                     userFeeds: state.feeds.filter { !$0.isDefault },
-                     onAdd: { url in
-                        dispatch(FeedAction.Add(url: url))
-                     }, onRemove: { url in
-                        dispatch(FeedAction.Delete(url: url))
-                     })
-    }
-    
+struct FeedsList: View {
+    @EnvironmentObject var store: ObservableFeedStore
     @SwiftUI.State var showsAlert: Bool = false
     
-    func body(props: Props) -> some View {
+    var body: some View {
+        let defaultFeeds = store.data.filter { $0.isDefault }
+        let userFeeds = store.data.filter { !$0.isDefault }
+        
         List {
-            ForEach(props.defaultFeeds) { FeedRow(feed: $0) }
-            ForEach(props.userFeeds) { FeedRow(feed: $0) }
+            ForEach(defaultFeeds) { FeedRow(feed: $0) }
+            ForEach(userFeeds) { FeedRow(feed: $0) }
                 .onDelete( perform: { set in
-                    set.map { props.userFeeds[$0] }.forEach { props.onRemove($0.sourceUrl) }
+                    set.map { userFeeds[$0] }.forEach { store.feedStore.deleteFeed(url: $0.sourceUrl) }
                 })
         }
         .alert(isPresented: $showsAlert, TextAlert(title: "Title") {
             if let url = $0 {
-                props.onAdd(url)
+                store.feedStore.addFeed(url: url)
             }
         })
         .navigationTitle("Feeds list")

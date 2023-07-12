@@ -2,77 +2,34 @@ import SwiftUI
 import RssReader
 import URLImage
 
-struct MainFeedView: ConnectedView {
-    
-    struct Props {
-        let loading: Bool
-        let items: [Post]
-        let feedOptions: [FeedPickerOption]
-        let selectedFeedOption: FeedPickerOption
-        
-        let onReloadFeed: (Bool) -> Void
-        let onSelectFeed: (Feed?) -> Void
-    }
-    
-    enum FeedPickerOption: Hashable {
-        case all, feed(Feed)
-        
-        var title: String {
-            return String((self.feed?.title ?? "All").prefix(20))
-        }
-        
-        var feed: Feed? {
-            switch self {
-            case .all:
-                return nil
-            case .feed(let feed):
-                return feed
-            }
-        }
-    }
-    
-    func map(state: FeedState, dispatch: @escaping DispatchFunction) -> Props {
-        let selectedFeedOption: FeedPickerOption
-        if let selectedFeed = state.selectedFeed {
-            selectedFeedOption = .feed(selectedFeed)
-        } else {
-            selectedFeedOption = .all
-        }
-        return Props(loading: state.progress,
-              items: state.mainFeedPosts(),
-              feedOptions: [.all] + state.feeds.map { FeedPickerOption.feed($0)},
-              selectedFeedOption: selectedFeedOption,
-              onReloadFeed: { reload in
-                dispatch(FeedAction.Refresh(forceLoad: reload))
-              },
-              onSelectFeed: { feed in
-                dispatch(FeedAction.SelectFeed(feed: feed))
-              })
-    }
-    
-    
-    @SwiftUI.State private var showSelectFeed = false
+struct MainFeedView: View {
+   
+    @EnvironmentObject var store: ObservableFeedStore
+    @SwiftUI.State private var selectedFeed: Feed? = nil
+    @SwiftUI.State private var showSelectFeed: Bool = false
     
     init() {
         UITableView.appearance().backgroundColor = .white
     }
     
-    func body(props: Props) -> some View {
+    var body: some View {
         VStack {
             if showSelectFeed {
-                feedPicker(props: props)
+                feedPicker()
             }
-            List(props.items, rowContent: PostRow.init)
+            let posts = (selectedFeed?.posts ?? store.data.flatMap { $0.posts })
+                .sorted { $0.date > $1.date }
+            List(posts, rowContent: PostRow.init)
         }
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarItems(leading: refreshButton(props: props), trailing: editFeedLink)
+        .navigationBarItems(leading: refreshButton(), trailing: editFeedLink)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                navigationTitle(props: props)
+                navigationTitle()
             }
         }
         .onAppear {
-            props.onReloadFeed(true)
+            store.feedStore.loadAllFeeds(forceLoad: false)
         }
     }
     
@@ -80,7 +37,7 @@ struct MainFeedView: ConnectedView {
         Animation.linear(duration: 0.8).repeatForever(autoreverses: false)
     }
     
-    func navigationTitle(props: Props) -> some View {
+    func navigationTitle() -> some View {
         VStack {
             HStack {
                 Text("RSS Reader").font(.headline)
@@ -90,20 +47,20 @@ struct MainFeedView: ConnectedView {
                     Image(systemName: showSelectFeed ? "chevron.up" : "chevron.down").imageScale(.small)
                 }
             }
-            Text(props.selectedFeedOption.title).font(.subheadline).lineLimit(1)
+            Text(selectedFeed?.title ?? "All").font(.subheadline).lineLimit(1)
         }
     }
     
     
-    func feedPicker(props: Props) -> some View {
-        let binding = Binding<FeedPickerOption>(
-            get: { props.selectedFeedOption },
-            set: { props.onSelectFeed($0.feed) }
+    func feedPicker() -> some View {
+        let binding = Binding<Feed?>(
+            get: { store.selected },
+            set: { store.selected = $0 }
         )
         return Picker("", selection: binding) {
-            ForEach(props.feedOptions, id: \.self) { option in
+            ForEach(store.data, id: \.self) { feed in
                 HStack {
-                    if let imageUrl = option.feed?.imageUrl, let url = URL(string: imageUrl) {
+                    if let imageUrl = feed.imageUrl, let url = URL(string: imageUrl) {
                         
                         URLImage(url: url) { image in
                             image
@@ -114,7 +71,7 @@ struct MainFeedView: ConnectedView {
                         .cornerRadius(12.0)
                         .clipped()
                     }
-                    Text(option.title)
+                    Text(feed.title)
                 }
             }
         }
@@ -122,13 +79,13 @@ struct MainFeedView: ConnectedView {
         .pickerStyle(.wheel)
     }
     
-    func refreshButton(props: Props) -> some View {
+    func refreshButton() -> some View {
         Button(action: {
-            props.onReloadFeed(true)
+            store.feedStore.loadAllFeeds(forceLoad: true)
         }) {
             Image(systemName: "arrow.clockwise")
                 .imageScale(.large)
-                .rotationEffect(Angle.degrees(props.loading ? 360 : 0)).animation( props.loading ? refreshButtionAnimation : .default)
+                .rotationEffect(Angle.degrees(store.loading ? 360 : 0)).animation( store.loading ? refreshButtionAnimation : .default)
         }
     }
     
